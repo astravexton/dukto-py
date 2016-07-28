@@ -9,13 +9,15 @@ class Runner(threading.Thread):
         self.NETWORK_PORT = 4644
         self.BROADCAST_ADDRESSES = []
         self.IGNORE_ADDRESSES = []
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self.s.bind(("0.0.0.0", self.NETWORK_PORT))
         for interface in ni.interfaces():
             try:
                 self.IGNORE_ADDRESSES.append(ni.ifaddresses(interface)[2][0]["addr"])
                 self.BROADCAST_ADDRESSES.append(ni.ifaddresses(interface)[2][0]["broadcast"])
             except KeyError:
                 pass
-        self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def getSystemSignature(self):
         signature = "{} at {} running dukto-py ({})".format(
@@ -23,7 +25,6 @@ class Runner(threading.Thread):
         return signature
 
     def run(self):
-        self.connect()
         self.connected = True
         self.packet = "\x01{}".format(self.getSystemSignature())
         while self.connected:
@@ -46,11 +47,6 @@ class Runner(threading.Thread):
         recv = self.s.recvfrom(2048)
         if recv[1][0] not in self.IGNORE_ADDRESSES:
             print(">>", recv[0], "from", recv[1][0])
-
-    def connect(self):
-        self.s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self.s.bind(("0.0.0.0", self.NETWORK_PORT))
-        self.connected = True
 
 if __name__ == "__main__":
     sys.exit("Please run main.py")
